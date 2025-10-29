@@ -115,15 +115,6 @@ y_train = strat_train_set["Weight"].copy()
 X_test = strat_test_set.drop("Weight", axis=1)
 y_test = strat_test_set["Weight"].copy()
 
-# [*********************BORRAR???????????????????????********]:
-# chequeamos la cantidad de datos que hay para entrenamiento
-# y para validación y cuantas características tienen cada dato
-# [es para chequear que sacamos Weight y la movimos a var objetivo]
-print(f"\nCaracterísticas de entrenamiento: {X_train.shape}")
-print(f"Variable objetivo entrenamiento: {y_train.shape}")
-print(f"Características de prueba: {X_test.shape}")
-print(f"Variable objetivo prueba: {y_test.shape}")
-
 # pipeline de preprocesamiento
 print("\n**** CONSTRUCCIÓN DEL PIPELINE ****")
 
@@ -259,7 +250,6 @@ plt.grid(axis='y', alpha=0.3)
 plt.tight_layout()
 plt.show()
 
-# BORRAR???????????************************************************
 # finamente algunas predicciones de ejemplo
 print("\n**** PREDICCIONES DE EJEMPLO ****")
 sample_predictions = pd.DataFrame({
