@@ -7,6 +7,8 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import StackingClassifier
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
 
 # Cargar el dataset Iris
 # X contiene las 4 características de cada flor (longitud y ancho de sépalo y pétalo)
@@ -66,3 +68,12 @@ for meta in meta_models:
     acc = accuracy_score(y_test, y_pred) # Calcular precisión del modelo
 
     print(f"Meta-modelo: {meta.__class__.__name__} - Precisión: {acc:.4f}") # Mostrar el meta-modelo utilizado y su precisión
+
+    # Matriz de confusión
+    cm = confusion_matrix(y_test, y_pred) # Crear la matriz que compara las clases reales (y_test) con las predichas (y_pred)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=iris.target_names) # Crear el objeto que permitirá graficar la matriz usando los nombres de las clases
+    
+    # Graficar matriz de confusión
+    disp.plot(cmap='Blues', values_format='d')
+    plt.title(f"Matriz de confusión - {meta.__class__.__name__}")
+    plt.show()
