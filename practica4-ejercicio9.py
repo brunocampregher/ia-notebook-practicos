@@ -57,6 +57,11 @@ for name, model in base_models:
 
 # Evaluar stacking con distintos meta-modelos
 print("\nStacking con diferentes meta-modelos:")
+
+precisiones = [] # Lista para guardar la precisión de cada meta-modelo
+
+cms = [] # Lista para guardar las matrices de confusión
+
 for meta in meta_models:
 
     stacking_model = StackingClassifier(estimators=base_models, final_estimator=meta) # Combinar modelos base
@@ -67,13 +72,31 @@ for meta in meta_models:
 
     acc = accuracy_score(y_test, y_pred) # Calcular precisión del modelo
 
+    precisiones.append(acc) # Guardar la precisión del meta-modelo
+
+    cms.append(confusion_matrix(y_test, y_pred)) # Guardar la matriz de confusión del meta-modelo
+
     print(f"Meta-modelo: {meta.__class__.__name__} - Precisión: {acc:.4f}") # Mostrar el meta-modelo utilizado y su precisión
 
-    # Matriz de confusión
-    cm = confusion_matrix(y_test, y_pred) # Crear la matriz que compara las clases reales (y_test) con las predichas (y_pred)
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=iris.target_names) # Crear el objeto que permitirá graficar la matriz usando los nombres de las clases
+# Gráfico de barras para comparar la precisión de los meta-modelos
+plt.bar([m.__class__.__name__ for m in meta_models], precisiones, color='skyblue', edgecolor='black')
+plt.title("Precisión de cada meta-modelo en el Stacking")
+plt.ylabel("Precisión")
+plt.ylim(min(precisiones) - 0.1, 1.0)
+plt.show()
+
+# Mostrar en paralelo las matrices de confusión de los meta-modelos para comparar resultados
+fig, axes = plt.subplots(1, len(meta_models), figsize=(14, 4))
+fig.suptitle("Matrices de confusión de los meta-modelos", fontsize=16)
+
+for i, (meta, cm) in enumerate(zip(meta_models, cms)):
     
+    # Crear la matriz que compara las clases reales (y_test) con las predichas (y_pred)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=iris.target_names) 
+
     # Graficar matriz de confusión
-    disp.plot(cmap='Blues', values_format='d')
-    plt.title(f"Matriz de confusión - {meta.__class__.__name__}")
-    plt.show()
+    disp.plot(ax=axes[i], cmap='Blues', colorbar=False)
+    axes[i].set_title(meta.__class__.__name__)
+
+plt.tight_layout()
+plt.show()
