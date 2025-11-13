@@ -1,20 +1,21 @@
 """
-Minimal character-level Vanilla RNN model. Written by Andrej Karpathy (@karpathy)
-BSD License
+Minimal character-level GRU RNN model.
 """
 import numpy as np
-
+import matplotlib.pyplot as plt
 # data I/O
-data = open('input.txt', 'r').read() # should be simple plain text file
+
+data = open('linux_input.txt', 'r', encoding='latin-1').read() # should be simple plain text file
 chars = list(set(data))
 data_size, vocab_size = len(data), len(chars)
 print('data has %d characters, %d unique.' % (data_size, vocab_size))
 char_to_ix = { ch:i for i,ch in enumerate(chars) }
 ix_to_char = { i:ch for i,ch in enumerate(chars) }
+losses_gru = []
 
 # hyperparameters
-hidden_size = 100 # size of hidden layer of neurons
-seq_length = 50 # number of steps to unroll the RNN for
+hidden_size = 120 # size of hidden layer of neurons
+seq_length = 60 # number of steps to unroll the RNN for
 learning_rate = 1e-2
 
 # model parameters
@@ -23,7 +24,7 @@ learning_rate = 1e-2
 Why = np.random.randn(vocab_size, hidden_size)*0.01 # hidden to output
 Wxz = np.random.randn(hidden_size, vocab_size)*0.01 # input a actualizacion
 Whz = np.random.randn(hidden_size, hidden_size)*0.01 # hidden a actualizacion
-Wxn = np.random.randn(hidden_size, vocab_size)*0.01 
+Wxn = np.random.randn(hidden_size, vocab_size)*0.01
 Whn = np.random.randn(hidden_size, hidden_size)*0.01
 Wxr = np.random.randn(hidden_size, vocab_size)*0.01
 Whr = np.random.randn(hidden_size, hidden_size)*0.01
@@ -51,7 +52,7 @@ def lossFun(inputs, targets, hprev):
     xs[t] = np.zeros((vocab_size,1)) # encode in 1-of-k representation
     xs[t][inputs[t]] = 1
     zs[t] = sigmoid(np.dot(Wxz, xs[t]) + np.dot(Whz, hs[t - 1]) + bz)
-    rs[t] = sigmoid(np.dot(Wxr, xs[t]) + np.dot(Whr, hs[t - 1] + br))
+    rs[t] = sigmoid(np.dot(Wxr, xs[t]) + np.dot(Whr, hs[t - 1]) + br)
     hcs[t] = np.tanh(np.dot(Wxn, xs[t]) + rs[t] * np.dot(Whn, hs[t - 1]) + bn) # hidden candidate state
     hs[t] = (1 - zs[t]) * hs[t - 1] + zs[t] * hcs[t] # hidden state
     ys[t] = np.dot(Why, hs[t]) + by # unnormalized log probabilities for next chars
@@ -98,7 +99,7 @@ def lossFun(inputs, targets, hprev):
     dbr += drraw
     dWxr += np.dot(drraw, xs[t].T)
 
-    dh_prev_r = np.dot(Whr.T, drraw) 
+    dh_prev_r = np.dot(Whr.T, drraw)
     dWhr += np.dot(drraw, hs[t - 1].T)
 
     dhnext = dh_prev_h + dh_prev_hcs + dh_prev_z + dh_prev_r
@@ -107,8 +108,8 @@ def lossFun(inputs, targets, hprev):
   return loss, dWxz, dWhz, dbz, dWxr, dWhr, dbr, dWxn, dWhn, dbn, dWhy, dby, hs[len(inputs)-1]
 
 def sample(h, seed_ix, n):
-  """ 
-  sample a sequence of integers from the model 
+  """
+  sample a sequence of integers from the model
   h is memory state, seed_ix is seed letter for first time step
   """
   x = np.zeros((vocab_size, 1))
@@ -137,34 +138,37 @@ mWxn, mWhn, mbn = np.zeros_like(Wxn), np.zeros_like(Whn), np.zeros_like(bn)
 # (Output)
 mWhy, mby = np.zeros_like(Why), np.zeros_like(by)
 smooth_loss = -np.log(1.0/vocab_size)*seq_length # loss at iteration 0
-while True:
+losses_gru.append(smooth_loss)
+while (n < 20000):
   # prepare inputs (we're sweeping from left to right in steps seq_length long)
-  if p+seq_length+1 >= len(data) or n == 0: 
+  if p+seq_length+1 >= len(data) or n == 0:
     hprev = np.zeros((hidden_size,1)) # reset RNN memory
     p = 0 # go from start of data
   inputs = [char_to_ix[ch] for ch in data[p:p+seq_length]]
   targets = [char_to_ix[ch] for ch in data[p+1:p+seq_length+1]]
 
   # sample from the model now and then
-  if n % 100 == 0:
+  if n % 1000 == 0:
     sample_ix = sample(hprev, inputs[0], 200)
     txt = ''.join(ix_to_char[ix] for ix in sample_ix)
     print('----\n %s \n----' % (txt, ))
 
   # forward seq_length characters through the net and fetch gradient
-  loss, dWxz, dWhz, dbz, dWxr, dWhr, dbr, dWxn, dWhn, dbn, dWhy, dby, hprev = lossFun(inputs, targets, hprev)  
+  loss, dWxz, dWhz, dbz, dWxr, dWhr, dbr, dWxn, dWhn, dbn, dWhy, dby, hprev = lossFun(inputs, targets, hprev)
   smooth_loss = smooth_loss * 0.999 + loss * 0.001
-  if n % 100 == 0: print('iter %d, loss: %f' % (n, smooth_loss)) # print progress
-  
+  losses_gru.append(smooth_loss)
+
+  if n % 1000 == 0: print('iter %d, loss: %f' % (n, smooth_loss)) # print progress
+
   # perform parameter update with Adagrad
   for param, dparam, mem in zip([Wxz, Whz, bz,
                 Wxr, Whr, br,
                 Wxn, Whn, bn,
-                Why, by], 
+                Why, by],
                                 [dWxz, dWhz, dbz,
                  dWxr, dWhr, dbr,
                  dWxn, dWhn, dbn,
-                 dWhy, dby], 
+                 dWhy, dby],
                                 [mWxz, mWhz, mbz,
               mWxr, mWhr, mbr,
               mWxn, mWhn, mbn,
@@ -173,4 +177,10 @@ while True:
     param += -learning_rate * dparam / np.sqrt(mem + 1e-8) # adagrad update
 
   p += seq_length # move data pointer
-  n += 1 # iteration counter 
+  n += 1 # iteration counter
+plt.plot(losses_gru, label='GRU')
+plt.xlabel("Iteraciones")
+plt.ylabel("Pérdida suavizada")
+plt.title("Pérdida durante el entrenamiento")
+plt.legend()
+plt.show()

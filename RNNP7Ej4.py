@@ -3,19 +3,21 @@ Minimal character-level Vanilla RNN model. Written by Andrej Karpathy (@karpathy
 BSD License
 """
 import numpy as np
+import matplotlib.pyplot as plt
 
 # data I/O
-data = open('input.txt', 'r').read() # should be simple plain text file
+data = open('linux_input.txt', 'r', encoding='latin-1').read() # should be simple plain text file
 chars = list(set(data))
 data_size, vocab_size = len(data), len(chars)
 print('data has %d characters, %d unique.' % (data_size, vocab_size))
 char_to_ix = { ch:i for i,ch in enumerate(chars) }
 ix_to_char = { i:ch for i,ch in enumerate(chars) }
+losses_rnn = []
 
 # hyperparameters
-hidden_size = 100 # size of hidden layer of neurons
-seq_length = 25 # number of steps to unroll the RNN for
-learning_rate = 1e-1
+hidden_size = 120 # size of hidden layer of neurons
+seq_length = 60 # number of steps to unroll the RNN for
+learning_rate = 1e-2
 
 # model parameters
 Wxh = np.random.randn(hidden_size, vocab_size)*0.01 # input to hidden
@@ -61,8 +63,8 @@ def lossFun(inputs, targets, hprev):
   return loss, dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs)-1]
 
 def sample(h, seed_ix, n):
-  """ 
-  sample a sequence of integers from the model 
+  """
+  sample a sequence of integers from the model
   h is memory state, seed_ix is seed letter for first time step
   """
   x = np.zeros((vocab_size, 1))
@@ -82,16 +84,17 @@ n, p = 0, 0
 mWxh, mWhh, mWhy = np.zeros_like(Wxh), np.zeros_like(Whh), np.zeros_like(Why)
 mbh, mby = np.zeros_like(bh), np.zeros_like(by) # memory variables for Adagrad
 smooth_loss = -np.log(1.0/vocab_size)*seq_length # loss at iteration 0
-while True:
+losses_rnn.append(smooth_loss)
+while (n < 20000):
   # prepare inputs (we're sweeping from left to right in steps seq_length long)
-  if p+seq_length+1 >= len(data) or n == 0: 
+  if p+seq_length+1 >= len(data) or n == 0:
     hprev = np.zeros((hidden_size,1)) # reset RNN memory
     p = 0 # go from start of data
   inputs = [char_to_ix[ch] for ch in data[p:p+seq_length]]
   targets = [char_to_ix[ch] for ch in data[p+1:p+seq_length+1]]
 
   # sample from the model now and then
-  if n % 100 == 0:
+  if n % 1000 == 0:
     sample_ix = sample(hprev, inputs[0], 200)
     txt = ''.join(ix_to_char[ix] for ix in sample_ix)
     print('----\n %s \n----' % (txt, ))
@@ -99,14 +102,21 @@ while True:
   # forward seq_length characters through the net and fetch gradient
   loss, dWxh, dWhh, dWhy, dbh, dby, hprev = lossFun(inputs, targets, hprev)
   smooth_loss = smooth_loss * 0.999 + loss * 0.001
-  if n % 100 == 0: print('iter %d, loss: %f' % (n, smooth_loss)) # print progress
-  
+  losses_rnn.append(smooth_loss)
+  if n % 1000 == 0: print('iter %d, loss: %f' % (n, smooth_loss)) # print progress
+
   # perform parameter update with Adagrad
-  for param, dparam, mem in zip([Wxh, Whh, Why, bh, by], 
-                                [dWxh, dWhh, dWhy, dbh, dby], 
+  for param, dparam, mem in zip([Wxh, Whh, Why, bh, by],
+                                [dWxh, dWhh, dWhy, dbh, dby],
                                 [mWxh, mWhh, mWhy, mbh, mby]):
     mem += dparam * dparam
     param += -learning_rate * dparam / np.sqrt(mem + 1e-8) # adagrad update
 
   p += seq_length # move data pointer
-  n += 1 # iteration counter 
+  n += 1 # iteration counter
+plt.plot(losses_rnn, label='RNN')
+plt.xlabel("Iteraciones")
+plt.ylabel("Pérdida suavizada")
+plt.title("Pérdida durante el entrenamiento")
+plt.legend()
+plt.show()
