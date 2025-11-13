@@ -13,7 +13,7 @@ Este trabajo práctico fue desarrollado en un notebook de **Jupyter**, en el que
 ```
 ├── iris/                           # Contiene el dataset Iris utilizado en el ejercicio 3 de la Práctica 6
 ├── linux_input.txt                 # Archivo de texto utilizado como entrada para el modelo GRU
-└── notebook.ipynb     # Notebook con el desarrollo del trabajo
+└── notebook.ipynb                  # Notebook con el desarrollo del trabajo
 ```
 
 ## 🛠️ Librerías y dependencias
